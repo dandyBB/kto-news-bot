@@ -14,7 +14,6 @@ from telethon import TelegramClient, events
 from app.config import (
     TELEGRAM_API_ID,
     TELEGRAM_API_HASH,
-    SOURCE_CHANNELS,
     ADMIN_ID,
 )
 from app.ai import analyze_and_generate_news
@@ -338,93 +337,7 @@ def get_source_name(
     return "невідоме джерело"
 
 
-# ==================================================
-# НОВЫЙ ПОСТ
-# ==================================================
 
-@client.on(
-    events.NewMessage(
-        chats=SOURCE_CHANNELS
-    )
-)
-async def new_post(
-    event,
-):
-
-    text = event.raw_text.strip()
-
-    if not text:
-        return
-
-    chat_id = event.chat_id
-    message_id = event.id
-
-    source_name = get_source_name(
-        event
-    )
-
-    if was_seen(
-        chat_id,
-        message_id,
-    ):
-
-        print(
-            "[MONITOR] Дубликат "
-            "Telegram-сообщения."
-        )
-
-        return
-
-    skip, reason = should_skip_locally(
-        text
-    )
-
-    if skip:
-
-        print(
-            f"[MONITOR] Пропуск: "
-            f"{reason}"
-        )
-
-        return
-
-    if is_duplicate_text(text):
-
-        print(
-            "[MONITOR] Дубликат текста "
-            "из другого источника."
-        )
-
-        return
-
-    item = {
-        "text": text,
-        "chat_id": chat_id,
-        "message_id": message_id,
-        "source_name": source_name,
-        "retries": 0,
-    }
-
-    try:
-
-        news_queue.put_nowait(
-            item
-        )
-
-        print(
-            "[MONITOR] Новость добавлена "
-            f"в очередь. "
-            f"Источник: {source_name}. "
-            f"Очередь: "
-            f"{news_queue.qsize()}"
-        )
-
-    except asyncio.QueueFull:
-
-        print(
-            "[MONITOR] Очередь переполнена. "
-            "Пост пропущен."
-        )
 
 
 # ==================================================
@@ -795,13 +708,6 @@ async def start_monitor(
 
         print(
             "Telegram-монитор запущен."
-        )
-
-        print(
-            "Источники:",
-            ", ".join(
-                SOURCE_CHANNELS
-            ),
         )
 
         await client.run_until_disconnected()
