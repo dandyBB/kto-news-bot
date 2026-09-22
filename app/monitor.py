@@ -25,15 +25,6 @@ client = TelegramClient(
     TELEGRAM_API_HASH,
 )
 
-monitor_bot: Bot | None = None
-
-monitor_pending = {}
-
-QUEUE_SIZE = 100
-
-news_queue = asyncio.Queue(
-    maxsize=QUEUE_SIZE
-)
 
 
 # ==================================================
@@ -271,32 +262,6 @@ def should_skip_locally(
     return False, ""
 
 
-# ==================================================
-# КНОПКИ
-# ==================================================
-
-def monitor_keyboard(
-    news_id: str,
-) -> InlineKeyboardMarkup:
-
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="📢 Взять в работу",
-                    callback_data=(
-                        f"monitor_take:{news_id}"
-                    ),
-                ),
-                InlineKeyboardButton(
-                    text="❌ Пропустить",
-                    callback_data=(
-                        f"monitor_skip:{news_id}"
-                    ),
-                ),
-            ]
-        ]
-    )
 
 
 # ==================================================
@@ -449,15 +414,6 @@ async def process_news(
 
     news_id = uuid4().hex[:12]
 
-    monitor_pending[news_id] = {
-        "original": text,
-        "result": generated_news,
-        "reason": result["reason"],
-        "priority": priority,
-        "source_name": source_name,
-        "source_chat_id": chat_id,
-        "source_message_id": message_id,
-    }
 
     if monitor_bot is None:
 

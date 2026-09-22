@@ -10,7 +10,6 @@ from app.keyboards import (
     news_keyboard,
     publish_keyboard,
 )
-from app.monitor import monitor_pending
 
 router = Router()
 
@@ -483,64 +482,3 @@ async def statistics(callback: CallbackQuery):
     )
 
     await callback.answer()
-
-# =========================
-# МОНИТОРИНГ TELEGRAM
-# =========================
-
-@router.callback_query(F.data.startswith("monitor_take:"))
-async def monitor_take(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        await callback.answer(
-            "⛔ Доступ запрещён.",
-            show_alert=True,
-        )
-        return
-
-    news_id = callback.data.split(":", 1)[1]
-
-    data = monitor_pending.get(news_id)
-
-    if not data:
-        await callback.answer(
-            "❌ Эта новость уже недоступна.",
-            show_alert=True,
-        )
-        return
-
-    pending_news[callback.from_user.id] = {
-        "original": data["original"],
-        "result": data["result"],
-        "mode": "normal",
-    }
-
-    del monitor_pending[news_id]
-
-    await callback.message.edit_text(
-        "📰 <b>Новость взята в работу</b>\n\n"
-        f"{data['result']}",
-        reply_markup=news_keyboard(),
-    )
-
-    await callback.answer("Готово")
-
-
-@router.callback_query(F.data.startswith("monitor_skip:"))
-async def monitor_skip(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        await callback.answer(
-            "⛔ Доступ запрещён.",
-            show_alert=True,
-        )
-        return
-
-    news_id = callback.data.split(":", 1)[1]
-
-    if news_id in monitor_pending:
-        del monitor_pending[news_id]
-
-    await callback.message.edit_text(
-        "❌ Новость пропущена."
-    )
-
-    await callback.answer("Пропущено")
