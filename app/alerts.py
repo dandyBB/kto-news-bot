@@ -1,6 +1,7 @@
 import asyncio
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import websockets
 from aiogram import Bot
@@ -36,18 +37,24 @@ known_threats = set()
 
 
 def get_time(value: str | None) -> str:
-    """Преобразует ISO-время в HH:MM."""
+    """Преобразует ISO-время в украинское время Europe/Kyiv."""
+    kyiv_tz = ZoneInfo("Europe/Kyiv")
+
     if not value:
-        return datetime.now().strftime("%H:%M")
+        return datetime.now(kyiv_tz).strftime("%H:%M")
 
     try:
         value = value.replace("Z", "+00:00")
         dt = datetime.fromisoformat(value)
 
-        return dt.astimezone().strftime("%H:%M")
-    except Exception:
-        return datetime.now().strftime("%H:%M")
+        # Если время пришло без timezone — считаем его UTC
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=ZoneInfo("UTC"))
 
+        return dt.astimezone(kyiv_tz).strftime("%H:%M")
+
+    except Exception:
+        return datetime.now(kyiv_tz).strftime("%H:%M")
 
 def is_kyiv_region(item: dict) -> bool:
     """Проверяет, относится ли объект к Киеву/Киевской области."""
@@ -110,7 +117,7 @@ def format_alert_start(alert: dict) -> str:
 def format_alert_end(previous_alerts: list[dict]) -> str:
     """Формирует сообщение об отбое."""
 
-    time = datetime.now().strftime("%H:%M")
+    time = datetime.now(ZoneInfo("Europe/Kyiv")).strftime("%H:%M")
 
     locations = []
 
